@@ -1,0 +1,855 @@
+
+local DrRayLibrary = loadstring(game:HttpGet("https://raw.githubusercontent.com/AZYsGithub/DrRay-UI-Library/main/DrRay.lua"))()
+local window = DrRayLibrary:Load("Joston hub", "Default")
+--
+local tab = DrRayLibrary.newTab("BEST FEATURES", "ImageIdHere")
+--
+local ScreenGui = Instance.new("ScreenGui")
+local AutoRunButton = Instance.new("TextButton")
+local Frame = Instance.new("Frame")
+--
+ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Name = "AutoRunGui"
+--
+Frame.Size = UDim2.new(0, 100, 0, 80)
+Frame.Position = UDim2.new(0, 10, 1, -150)
+Frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+--
+AutoRunButton.Size = UDim2.new(1, 0, 1, 0)
+AutoRunButton.Text = "Auto slide jump run"
+AutoRunButton.Parent = Frame
+AutoRunButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+AutoRunButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoRunButton.BorderSizePixel = 0
+--
+Frame.Visible = false
+--
+tab.newToggle("Slide Jump Toggle", "Toggle slide jump UI", true, function(toggleState)
+    Frame.Visible = toggleState
+end)
+
+local isAutoRunning = false
+local stopAutoRun = false
+--
+local function AutoRunAndJumpCrouch()
+    while isAutoRunning do
+        if stopAutoRun then break end
+        keypress(0x57)
+        keypress(0x10)
+        task.wait(0.05)
+        keypress(0x43)
+        keypress(0x20)
+        keyrelease(0x20)
+        task.wait(0.5)
+        keyrelease(0x43)
+        keyrelease(0x10)
+        wait(1.2)
+    end
+end
+--
+AutoRunButton.MouseButton1Click:Connect(function()
+    if not isAutoRunning then
+        isAutoRunning = true
+        stopAutoRun = false
+        AutoRunButton.Text = "Stop slide jump run"
+        task.spawn(AutoRunAndJumpCrouch)
+    else
+        isAutoRunning = false
+        stopAutoRun = true
+        keyrelease(0x57)
+        keyrelease(0x10)
+        keyrelease(0x43)
+        AutoRunButton.Text = "Auto slide jump run"
+    end
+end)
+--
+local function createDraggableButton(name, position, callback)
+    local gui = Instance.new("ScreenGui")
+    local button = Instance.new("TextButton")
+    local dragging, dragInput, dragStart, startPos
+--
+    gui.Parent = game.CoreGui
+    gui.Name = name .. "Gui"
+    gui.ResetOnSpawn = false
+--
+    button.Parent = gui
+    button.Size = UDim2.new(0, 100, 0, 30)
+    button.Position = position
+    button.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.Text = name
+    button.Visible = false
+--
+    button.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = button.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+--
+    button.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+--
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            button.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
+        end
+    end)
+--
+    button.MouseButton1Click:Connect(callback)
+--
+    return button
+end
+--
+local lootButton = createDraggableButton("esp", UDim2.new(0, 100, 1, -100), function()
+    for i = 1, 20 do
+        game:GetService("Players").LocalPlayer.RemoteEvent:FireServer(12, i, true)
+        wait(0.03)
+    end
+end)
+--
+tab.newToggle("esp", "Show/hide Loot All button", false, function(toggleState)
+    lootButton.Visible = toggleState
+end)
+--
+local depositButton = createDraggableButton("Deposit All", UDim2.new(0, 210, 1, -100), function()
+    for i = 1, 20 do
+        game:GetService("Players").LocalPlayer.RemoteEvent:FireServer(12, i, false)
+        wait(0.03)
+    end
+end)
+--
+tab.newToggle("Deposit All Toggle", "Show/hide Deposit All button", false, function(toggleState)
+    depositButton.Visible = toggleState
+end)
+--
+local tab = DrRayLibrary.newTab("combat", "ImageIdHere")
+-- magic bullet
+  tab.newButton("magic bullet", "", function()
+
+local UserInputService = game:GetService("UserInputService")
+local Camera = workspace.CurrentCamera
+local Mouse = game:GetService("Players").LocalPlayer:GetMouse()
+local RunService = game:GetService("RunService")
+local GuiService = game:GetService("GuiService")
+local GuiInset = GuiService:GetGuiInset()
+
+local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+
+local fov_settings = {
+    enabled = true,
+    size = 100,
+    color = Color3.new(1, 1, 1), -- white
+    outline = true,
+    outline_color = Color3.new(0, 0, 0), -- black 
+    filled = false
+}
+
+local validcharacters = {}
+do
+    local function addtovc(obj)
+        if not obj or not obj:FindFirstChild("Head") or not obj:FindFirstChild("Torso") then return end
+        validcharacters[obj] = obj
+    end
+    local function removefromvc(obj)
+        validcharacters[obj] = nil
+    end
+    for _, v in next, workspace:GetChildren() do addtovc(v) end
+    workspace.ChildAdded:Connect(addtovc)
+    workspace.ChildRemoved:Connect(removefromvc)
+end
+
+local function get_closest_target()
+    local part, spos = nil, nil
+    local maximum_distance = fov_settings.size -- Restrict to FOV radius
+    local target_pos
+    if isMobile then
+        local viewportSize = Camera.ViewportSize
+        target_pos = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    else
+        target_pos = Vector2.new(Mouse.X, Mouse.Y)
+    end
+    for _, character in validcharacters do
+        local hitpart = character:FindFirstChild("Head")
+        if hitpart then
+            local position, onscreen = Camera:WorldToViewportPoint(hitpart.Position)
+            local distance = (Vector2.new(position.X, position.Y) - target_pos).Magnitude
+            if onscreen and distance < maximum_distance then
+                part = hitpart
+                maximum_distance = distance
+                spos = Vector2.new(position.X, position.Y)
+            end
+        end
+    end
+    return part, spos
+end
+
+local snaplinedrawing = Drawing.new("Line")
+snaplinedrawing.Transparency = 1.1
+snaplinedrawing.Thickness = 1.2
+snaplinedrawing.ZIndex = 1
+snaplinedrawing.Color = Color3.new(200, 0, 0) 
+snaplinedrawing.Visible = true
+
+local fov_circle = Drawing.new("Circle")
+fov_circle.Transparency = 1
+fov_circle.Thickness = 1
+fov_circle.ZIndex = 2
+fov_circle.Color = fov_settings.color
+fov_circle.Radius = fov_settings.size
+fov_circle.Filled = fov_settings.filled
+fov_circle.Visible = fov_settings.enabled
+
+local fov_outline = Drawing.new("Circle")
+fov_outline.Transparency = 1
+fov_outline.Thickness = 3
+fov_outline.ZIndex = 1
+fov_outline.Color = fov_settings.outline_color
+fov_outline.Radius = fov_settings.size
+fov_outline.Filled = fov_settings.filled
+fov_outline.Visible = fov_settings.enabled and fov_settings.outline
+
+local target, spos, cachedtarget
+RunService.RenderStepped:Connect(function()
+    if not cachedtarget then
+        target, spos = get_closest_target()
+    end
+    if target and spos then
+        snaplinedrawing.Visible = true
+        if isMobile then
+            local viewportSize = Camera.ViewportSize
+            snaplinedrawing.From = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+        else
+            snaplinedrawing.From = Vector2.new(Mouse.X, Mouse.Y + GuiInset.Y)
+        end
+        snaplinedrawing.To = spos
+    else
+        snaplinedrawing.Visible = false
+    end
+    if isMobile then
+        local viewportSize = Camera.ViewportSize
+        fov_circle.Position = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+        fov_outline.Position = Vector2.new(viewportSize.X / 2, viewportSize.Y / 2)
+    else
+        fov_circle.Position = Vector2.new(Mouse.X, Mouse.Y + GuiInset.Y)
+        fov_outline.Position = Vector2.new(Mouse.X, Mouse.Y + GuiInset.Y)
+    end
+end)
+
+do
+    local function addtovc(obj)
+        if not obj or not obj:FindFirstChild("whiz") then return end
+        local confirmed = false
+        obj:GetPropertyChangedSignal("CFrame"):Connect(function()
+            if not confirmed and (Camera.CFrame.Position - obj.CFrame.Position).Magnitude < 1 then
+                confirmed = true
+            end
+            if confirmed and (cachedtarget or target) then
+                if not cachedtarget then cachedtarget = target end
+                local bulletpos = obj.CFrame.Position
+                cachedtarget.Parent.PrimaryPart.CFrame = CFrame.new(Vector3.new(bulletpos.X, cachedtarget.Position.Y, bulletpos.Z))
+            end
+        end)
+        RunService.Heartbeat:Connect(function()
+            if not obj or not obj.Parent then
+                cachedtarget = false
+            end
+        end)
+    end
+    workspace.Const.Ignore.ChildAdded:Connect(addtovc)
+end
+end)
+
+-- Hitbox
+  tab.newButton("Hitbox", "", function()
+
+local RunService = game:GetService("RunService")
+local validcharacters = {}
+--
+local original_sizes = {} 
+local hbsize = Vector3.new(5, 6, 5)
+local hitboxheadtransparency = 0.6
+local cancollide = false
+
+local function addtovc(obj)
+    if not obj then return end
+    if not obj:FindFirstChild("Head") and not obj:FindFirstChild("LowerTorso") then return end
+    validcharacters[obj] = obj
+end
+--
+local function removefromvc(obj)
+    if not validcharacters[obj] then return end
+    local primpart = obj and obj:FindFirstChild("Head")
+    if primpart and original_sizes[obj] then
+        primpart.Size = original_sizes[obj]
+        primpart.Transparency = 0
+        primpart.CanCollide = true
+    end
+    validcharacters[obj] = nil
+    original_sizes[obj] = nil
+end
+--
+for _, v in ipairs(workspace:GetChildren()) do
+    addtovc(v)
+end
+--
+workspace.ChildAdded:Connect(addtovc)
+workspace.ChildRemoved:Connect(removefromvc)
+--
+RunService.Heartbeat:Connect(function()
+    for obj, _ in pairs(validcharacters) do
+        local primpart = obj and obj:FindFirstChild("Head")
+        if primpart then
+            if not original_sizes[obj] then
+                original_sizes[obj] = primpart.Size
+            end
+            primpart.Size = hbsize
+            primpart.Transparency = hitboxheadtransparency
+            primpart.CanCollide = cancollide
+        end
+    end
+end)
+end)
+
+-- no recoil
+  tab.newButton("no recoil", "", function()
+
+local no_recoil; no_recoil = hookfunction(CFrame.new, newcclosure(function(...)
+    if (debug.info(3,"l") == 389 and debug.info(3,"s"):find("Camera")) then
+        setstack(3, 1, {cameraXShake=0,rotSpeed=0,rotMag=0,returnTime=0,push=0,returnLerp=0,cameraY=0,cameraX=0,lerp=0})
+    end
+    return no_recoil(...)
+end))
+end)
+-- no spread
+  tab.newButton("no spread", "", function()
+
+local no_spread; no_spread = hookmetamethod(Random.new(), "__namecall", newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if method == "NextInteger" and debug.info(3, "l") == 283 and debug.info(3, "s"):find("RangedWeaponClient") or method == "NextInteger" and debug.info(3, "l") == 152 and debug.info(3, "s"):find("BowClient") then
+        if getstack(3, 12) == -100 and getstack(3, 13) == 100 then
+            setstack(3, 12, math.random(0, 0))
+            setstack(3, 13, math.random(0, 0))
+        end
+    end
+    return no_spread(self, ...)
+end))
+end)
+--
+local tab = DrRayLibrary.newTab("👀visual👀", "ImageIdHere")
+-- esp
+  tab.newButton("esp", "", function()
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/milo22-ux/Trident-survival-stuff/refs/heads/main/V5%20esp", true))()
+end)
+
+-- fov
+  tab.newButton("fov ", "", function()
+
+local varsglobal = {
+    visuals = {
+        FovChanger = true, 
+        FovAdd = 120,
+        OldFov = workspace.CurrentCamera.FieldOfView,
+        ZoomAmt = 0,
+        FovZoom = false,
+    },
+}
+
+local function updateFOV()
+    if varsglobal.visuals.FovChanger then
+        workspace.CurrentCamera.FieldOfView = varsglobal.visuals.OldFov + varsglobal.visuals.FovAdd
+    else
+        workspace.CurrentCamera.FieldOfView = varsglobal.visuals.OldFov
+    end
+end
+game:GetService("RunService").RenderStepped:Connect(updateFOV)
+end)
+-- boat esp
+  tab.newButton("boat esp ", "", function()
+
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local CoreGui = game:GetService("CoreGui")
+
+local container = Instance.new("Folder", CoreGui:FindFirstChild("RobloxGui") or CoreGui)
+container.Name = "BoatESP"
+
+local function createTextESP(part)
+    if not part:IsDescendantOf(workspace) then return end
+
+    local label = Drawing.new("Text")
+    label.Size = 14
+    label.Font = 2
+    label.Center = true
+    label.Outline = true
+    label.Color = Color3.fromRGB(0, 170, 255)
+    label.Visible = false
+
+    RunService.Heartbeat:Connect(function()
+        if not part or not part:IsDescendantOf(workspace) or not part.Position or not Camera or not Camera.ViewportSize then
+            label.Visible = false
+            return
+        end
+
+        local distance = (Camera.CFrame.Position - part.Position).Magnitude
+        if distance <= 20000 then
+            local pos, onScreen = Camera:WorldToViewportPoint(part.Position + Vector3.new(0, 3, 0))
+            if onScreen and pos.Z > 0 and type(pos.X) == "number" and type(pos.Y) == "number" then
+                label.Position = Vector2.new(pos.X, pos.Y)
+                label.Text = string.format("Boat [%.0f]", distance)
+                label.Visible = true
+            else
+                label.Visible = false
+            end
+        else
+            label.Visible = false
+        end
+    end)
+end
+
+for _, obj in ipairs(workspace:GetDescendants()) do
+    if obj:IsA("BasePart") and obj.Name == "WindBlock" then
+        createTextESP(obj)
+    end
+end
+
+workspace.DescendantAdded:Connect(function(obj)
+    if obj:IsA("BasePart") and obj.Name == "WindBlock" then
+        createTextESP(obj)
+    end
+end)
+end)
+-- heli esp
+  tab.newButton("heli esp ", "", function()
+
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local CoreGui = game:GetService("CoreGui")
+
+local container = Instance.new("Folder", CoreGui:FindFirstChild("RobloxGui") or CoreGui)
+container.Name = "HelicopterESP"
+
+local espLabels = {}
+
+local function createTextESP(model)
+    local primaryPart = model.PrimaryPart or model:FindFirstChild("HeadLockPart")
+    if not primaryPart or not primaryPart:IsDescendantOf(workspace) or not primaryPart:IsA("BasePart") then return end
+
+    local label = Drawing.new("Text")
+    label.Size = 14
+    label.Font = 2
+    label.Center = true
+    label.Outline = true
+    label.Color = Color3.fromRGB(0, 170, 255)
+    label.Visible = false
+
+    espLabels[model] = label
+
+    model.AncestryChanged:Connect(function()
+        if not model:IsDescendantOf(workspace) then
+            label:Remove()
+            espLabels[model] = nil
+        end
+    end)
+
+    return label
+end
+
+local function updateESP()
+    for model, label in pairs(espLabels) do
+        local primaryPart = model.PrimaryPart or model:FindFirstChild("HeadLockPart")
+        if not primaryPart or not primaryPart:IsDescendantOf(workspace) or not primaryPart.Position or not Camera or not Camera.ViewportSize then
+            label.Visible = false
+        else
+            local distance = (Camera.CFrame.Position - primaryPart.Position).Magnitude
+            if distance <= 20000 then
+                local pos, onScreen = Camera:WorldToViewportPoint(primaryPart.Position + Vector3.new(0, 3, 0))
+                if onScreen and pos.Z > 0 and type(pos.X) == "number" and type(pos.Y) == "number" then
+                    label.Position = Vector2.new(pos.X, pos.Y)
+                    label.Text = string.format("Helicopter [%.0f]", distance)
+                    label.Visible = true
+                else
+                    label.Visible = false
+                end
+            else
+                label.Visible = false
+            end
+        end
+    end
+end
+
+for _, model in ipairs(workspace:GetChildren()) do
+    if model:IsA("Model") and model:FindFirstChild("HeadLockPart") and model:FindFirstChild("HeadLockPart"):IsA("BasePart") then
+        createTextESP(model)
+    end
+end
+
+workspace.ChildAdded:Connect(function(model)
+    if model:IsA("Model") and model:WaitForChild("HeadLockPart", 1) and model:FindFirstChild("HeadLockPart"):IsA("BasePart") then
+        local label = createTextESP(model)
+        if label then
+            updateESP() -- Immediately update ESP for new spawn
+        end
+    end
+end)
+
+RunService.Heartbeat:Connect(updateESP)
+end)
+
+-- totem esp
+  tab.newButton("totem esp", "", function()
+
+local RunService = game:GetService("RunService")
+local Camera = workspace.CurrentCamera
+local CoreGui = game:GetService("CoreGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- ESP container
+local container = Instance.new("Folder", CoreGui:FindFirstChild("RobloxGui") or CoreGui)
+container.Name = "ClaimTotemESP"
+
+
+local function createTextESP(part)
+    if not part:IsDescendantOf(workspace) then return end
+
+    local label = Drawing.new("Text")
+    label.Size = 14
+    label.Font = 2
+    label.Center = true
+    label.Outline = true
+    label.Color = Color3.fromRGB(0, 170, 255) -- Blue
+    label.Visible = false
+
+    RunService.Heartbeat:Connect(function()
+        if not part:IsDescendantOf(workspace) then
+            label.Visible = false
+            return
+        end
+
+        local distance = (Camera.CFrame.Position - part.Position).Magnitude
+        if distance <= 1000 then
+            local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+            if onScreen then
+                label.Position = Vector2.new(pos.X, pos.Y)
+                label.Text = string.format("ClaimTotem [%.0f]", distance)
+                label.Visible = true
+            else
+                label.Visible = false
+            end
+        else
+            label.Visible = false
+        end
+    end)
+end
+
+
+local prefabState = ReplicatedStorage.Shared.items["place downs"].ClaimTotemItem.Image.ClaimTotem:FindFirstChild("State")
+if not prefabState or not prefabState:IsA("BasePart") then
+    warn("Reference State part not found in prefab")
+    return
+end
+
+
+for _, obj in ipairs(workspace:GetDescendants()) do
+    if obj:IsA("BasePart") and obj.Name == prefabState.Name then
+        createTextESP(obj)
+    end
+end
+end)
+
+local tab = DrRayLibrary.newTab("misc", "ImageIdHere")
+-- boat speed
+  tab.newButton("boat speed", "", function()
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local NEXT = _G.NEXT
+local CUSTOM_SPEED = 250
+local UPSPEED = 30
+local ACCEL = 200
+local YAW_RATE = 0.5
+local MAX_FORCE = 20000
+local oldNewIndex
+local mt = getrawmetatable(game)
+local newIndex = mt.__newindex
+if hookmetamethod then
+    oldNewIndex = hookmetamethod(game, "__newindex", function(t, k, v)
+        if (k == "CFrame" or k == "AssemblyLinearVelocity") and checkcaller() then
+            return
+        end
+        return oldNewIndex(t, k, v)
+    end)
+end
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "BoatBoostUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.Parent = game:GetService("CoreGui")
+local Frame = Instance.new("Frame")
+Frame.Size = UDim2.new(0, 200, 0, 100)
+Frame.Position = UDim2.new(0.5, -100, 0.5, -50)
+Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Frame.BorderSizePixel = 0
+Frame.Active = true
+Frame.Draggable = true
+Frame.Parent = ScreenGui
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = Frame
+local Button = Instance.new("TextButton")
+Button.Size = UDim2.new(1, -20, 0, 50)
+Button.Position = UDim2.new(0, 10, 0.5, -25)
+Button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+Button.Text = "🚤 Boat Boost"
+Button.TextColor3 = Color3.fromRGB(255, 255, 255)
+Button.Font = Enum.Font.GothamBold
+Button.TextSize = 18
+Button.Parent = Frame
+local ButtonCorner = Instance.new("UICorner")
+ButtonCorner.CornerRadius = UDim.new(0, 8)
+ButtonCorner.Parent = Button
+local boat = nil
+local buildup = 0
+local lastdir = Vector3.new(0, 0, 1)
+local yaw = 0
+local function findBoat()
+    boat = nil
+    local workspaceChildren = workspace:GetChildren()
+    if workspaceChildren[381] and workspaceChildren[381]:FindFirstChild("Hull") then
+        boat = workspaceChildren[381]
+        boat.PrimaryPart = boat.Hull
+    elseif NEXT and NEXT.model and NEXT.model:FindFirstChild("Hull") then
+        boat = NEXT.model
+        boat.PrimaryPart = boat.Hull
+    else
+        for _, v in pairs(workspace:GetChildren()) do
+            if v:IsA("Model") and v:FindFirstChild("Hull") then
+                boat = v
+                boat.PrimaryPart = v.Hull
+                break
+            end
+        end
+    end
+end
+findBoat()
+local isBoostOn = false
+local connection = nil
+local function applyBoost()
+    if not boat or not boat:FindFirstChild("Hull") then return end
+    local hull = boat.Hull
+    if connection then connection:Disconnect() end
+    if isBoostOn then
+        Button.BackgroundColor3 = Color3.fromRGB(0, 150, 255)
+        Button.Text = "✅ Boat Boost ON"
+        connection = RunService.Heartbeat:Connect(function(delta)
+            if not boat or not boat.Parent or not boat:FindFirstChild("Hull") then
+                connection:Disconnect()
+                boat = nil
+                findBoat()
+                return
+            end
+            local cameralook = game.Workspace.CurrentCamera.CFrame.LookVector
+            cameralook = Vector3.new(cameralook.X, 0, cameralook.Z).Unit
+            local direction = Vector3.zero
+            local isMoving = false
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                direction = direction + cameralook
+                isMoving = true
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                direction = direction - cameralook
+                isMoving = true
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                direction = direction + Vector3.new(-cameralook.Z, 0, cameralook.X)
+                isMoving = true
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                direction = direction + Vector3.new(cameralook.Z, 0, -cameralook.X)
+                isMoving = true
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.V) then
+                direction = direction + Vector3.yAxis
+                isMoving = true
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.B) then
+                direction = direction - Vector3.yAxis
+                isMoving = true
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                yaw = yaw + YAW_RATE * delta
+            elseif UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                yaw = yaw - YAW_RATE * delta
+            end
+            if isMoving and direction ~= Vector3.zero then
+                direction = direction.Unit
+                if direction ~= Vector3.yAxis and direction ~= -Vector3.yAxis then
+                    buildup = math.clamp(buildup + delta * ACCEL, 0, CUSTOM_SPEED)
+                    lastdir = direction
+                end
+            else
+                buildup = 0
+                direction = Vector3.zero
+            end
+            local waterLevel = workspace:GetAttribute("WaterLevel") or 0
+            local newPos = hull.CFrame.Position + direction * buildup * delta
+            newPos = Vector3.new(newPos.X, math.max(newPos.Y, waterLevel + 2), newPos.Z)
+            local newCFrame = CFrame.new(newPos) * CFrame.Angles(0, yaw, 0)
+            boat:PivotTo(newCFrame)
+            for _, v in pairs(boat:GetChildren()) do
+                if v:IsA("BasePart") then
+                    v.AssemblyLinearVelocity = Vector3.new(direction.X * buildup, direction.Y * UPSPEED, direction.Z * buildup)
+                end
+            end
+            if hull:FindFirstChild("LinearVelocity") then
+                hull.LinearVelocity.Enabled = true
+                hull.LinearVelocity.MaxForce = MAX_FORCE
+                hull.LinearVelocity.VectorVelocity = Vector3.new(direction.X * buildup, direction.Y * UPSPEED, direction.Z * buildup)
+            end
+            if NEXT and NEXT.Move then
+                local targetPos = hull.Position + direction * buildup * 0.15
+                local currentRot = Vector3.new(0, yaw, 0)
+                NEXT:Move(targetPos, currentRot, 0, 1)
+            end
+            if NEXT and NEXT.ApplyVelocity then
+                NEXT:ApplyVelocity(Vector3.new(direction.X * buildup, direction.Y * UPSPEED, direction.Z * buildup), nil)
+            end
+            if hull:FindFirstChild("MotorSound") then
+                hull.MotorSound:Stop()
+                hull.MotorSound.PlaybackSpeed = 0
+                hull.MotorSound.Volume = 0
+            end
+            if hull:FindFirstChild("Steer") and hull.Steer:FindFirstChild("AngularVelocity") then
+                hull.Steer.AngularVelocity.AngularVelocity = Vector3.new(0, 0, 0)
+                hull.Steer.AngularVelocity.MaxTorque = Vector3.new(0, 0, 0)
+            end
+            if hull:FindFirstChild("AlignPosition") then
+                hull.AlignPosition.Enabled = false
+                hull.AlignPosition.MaxForce = 0
+            end
+        end)
+    else
+        Button.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        Button.Text = "🚤 Boat Boost"
+        for _, v in pairs(boat:GetChildren()) do
+            if v:IsA("BasePart") then
+                v.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+            end
+        end
+        if hull:FindFirstChild("LinearVelocity") then
+            hull.LinearVelocity.Enabled = false
+            hull.LinearVelocity.MaxForce = 0
+            hull.LinearVelocity.VectorVelocity = Vector3.new(0, 0, 0)
+        end
+        if NEXT and NEXT.ApplyVelocity then
+            NEXT:ApplyVelocity(Vector3.new(0, 0, 0), nil)
+        end
+        if hull:FindFirstChild("MotorSound") then
+            hull.MotorSound:Stop()
+            hull.MotorSound.PlaybackSpeed = 0
+            hull.MotorSound.Volume = 0
+        end
+        if hull:FindFirstChild("Steer") and hull.Steer:FindFirstChild("AngularVelocity") then
+            hull.Steer.AngularVelocity.AngularVelocity = Vector3.new(0, 0, 0)
+            hull.Steer.AngularVelocity.MaxTorque = Vector3.new(0, 0, 0)
+        end
+        if hull:FindFirstChild("AlignPosition") then
+            hull.AlignPosition.Enabled = true
+            hull.AlignPosition.MaxForce = math.huge
+        end
+        yaw = 0
+    end
+end
+Button.MouseButton1Click:Connect(function()
+    isBoostOn = not isBoostOn
+    local boatsFound = 0
+    for _, model in ipairs(workspace:GetChildren()) do
+        if model:IsA("Model") and model:FindFirstChild("Hull") then
+            boatsFound += 1
+        end
+    end
+    if isBoostOn and boatsFound > 0 then
+        Button.Text = "✅ Boosted " .. boatsFound .. " Boat(s)!"
+        task.wait(2)
+        Button.Text = "✅ Boat Boost ON"
+    end
+    findBoat()
+    applyBoost()
+end)
+RunService.Heartbeat:Connect(function()
+    if boat and boat.Parent and boat:FindFirstChild("Hull") then return end
+    findBoat()
+    if boat then
+        applyBoost()
+    end
+end)
+game:BindToClose(function()
+    if hookmetamethod and oldNewIndex then
+        hookmetamethod(game, "__newindex", oldNewIndex)
+    end
+end)
+end)
+
+-- drill
+  tab.newButton("fast drill", "", function()
+
+for _, v in getgc(true) do
+        if type(v) == "table" and rawget(v, "type") == "MiningDrill" then
+            v.AttackCooldown = 0
+        end
+    end
+end)
+
+-- trace
+  tab.newButton("trace", "", function()
+
+local replicatedStorage = game:GetService("ReplicatedStorage")
+local arrow = replicatedStorage:WaitForChild("Arrow")
+local trail = arrow:WaitForChild("Trail")
+
+
+trail.Lifetime = 30
+
+
+trail.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(280, 0, 0)), -- Bright red
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(280, 0, 0)), -- Darker red
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(280, 0, 0)) -- Back to bright red
+})
+
+-- Optional: Animate transparency for pulsating effect
+trail.Transparency = NumberSequence.new({
+    NumberSequenceKeypoint.new(0, 0), -- Fully opaque
+    NumberSequenceKeypoint.new(0.5, 0.3), -- Slightly transparent
+    NumberSequenceKeypoint.new(1, 0) -- Fully opaque
+})
+
+
+local function pulseWidth()
+    while true do
+        trail.WidthScale = 1
+        wait(0.5)
+        trail.WidthScale = 1.5
+        wait(0.5)
+    end
+end
+
+spawn(pulseWidth) 
+end)
