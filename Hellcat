@@ -154,7 +154,7 @@ local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEna
 
 local fov_settings = {
     enabled = true,
-    size = 180,
+    size = 200,
     color = Color3.new(1, 1, 1), -- white
     outline = true,
     outline_color = Color3.new(0, 0, 0), -- black 
@@ -218,7 +218,7 @@ fov_circle.Visible = fov_settings.enabled
 
 local fov_outline = Drawing.new("Circle")
 fov_outline.Transparency = 1
-fov_outline.Thickness = 3
+fov_outline.Thickness = 2
 fov_outline.ZIndex = 1
 fov_outline.Color = fov_settings.outline_color
 fov_outline.Radius = fov_settings.size
