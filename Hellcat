@@ -154,7 +154,7 @@ local isMobile = UserInputService.TouchEnabled and not UserInputService.MouseEna
 
 local fov_settings = {
     enabled = true,
-    size = 100,
+    size = 180,
     color = Color3.new(1, 1, 1), -- white
     outline = true,
     outline_color = Color3.new(0, 0, 0), -- black 
