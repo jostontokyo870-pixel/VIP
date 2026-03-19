@@ -349,7 +349,7 @@ local CornerBoxes = false
 local WeaponType = true
 local Names = true
 local Bar = false
-local MaxDistance = 1500
+local MaxDistance = 5000
 
 local modules = {
     ["PlayerClient"] = {},
@@ -419,7 +419,7 @@ end
 local function Calc(distance)
     local maxBarWidth = 4
     local minBarWidth = 1
-    local distanceThreshold = 200
+    local distanceThreshold = 5000
 
     if distance > distanceThreshold then
         return minBarWidth
