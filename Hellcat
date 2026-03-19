@@ -117,27 +117,7 @@ local function createDraggableButton(name, position, callback)
     return button
 end
 --
-local lootButton = createDraggableButton("esp", UDim2.new(0, 100, 1, -100), function()
-    for i = 1, 20 do
-        game:GetService("Players").LocalPlayer.RemoteEvent:FireServer(12, i, true)
-        wait(0.03)
-    end
-end)
---
-tab.newToggle("esp", "Show/hide Loot All button", false, function(toggleState)
-    lootButton.Visible = toggleState
-end)
---
-local depositButton = createDraggableButton("Deposit All", UDim2.new(0, 210, 1, -100), function()
-    for i = 1, 20 do
-        game:GetService("Players").LocalPlayer.RemoteEvent:FireServer(12, i, false)
-        wait(0.03)
-    end
-end)
---
-tab.newToggle("Deposit All Toggle", "Show/hide Deposit All button", false, function(toggleState)
-    depositButton.Visible = toggleState
-end)
+
 --
 local tab = DrRayLibrary.newTab("combat", "ImageIdHere")
 -- magic bullet
@@ -776,29 +756,6 @@ game:GetService("Workspace").ChildAdded:Connect(function()
     end)
 end)
 end)
-
--- fov
-  tab.newButton("fov ", "", function()
-
-local varsglobal = {
-    visuals = {
-        FovChanger = true, 
-        FovAdd = 120,
-        OldFov = workspace.CurrentCamera.FieldOfView,
-        ZoomAmt = 0,
-        FovZoom = false,
-    },
-}
-
-local function updateFOV()
-    if varsglobal.visuals.FovChanger then
-        workspace.CurrentCamera.FieldOfView = varsglobal.visuals.OldFov + varsglobal.visuals.FovAdd
-    else
-        workspace.CurrentCamera.FieldOfView = varsglobal.visuals.OldFov
-    end
-end
-game:GetService("RunService").RenderStepped:Connect(updateFOV)
-end)
 -- boat esp
   tab.newButton("boat esp ", "", function()
 
@@ -1235,39 +1192,3 @@ for _, v in getgc(true) do
     end
 end)
 
--- trace
-  tab.newButton("trace", "", function()
-
-local replicatedStorage = game:GetService("ReplicatedStorage")
-local arrow = replicatedStorage:WaitForChild("Arrow")
-local trail = arrow:WaitForChild("Trail")
-
-
-trail.Lifetime = 30
-
-
-trail.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(280, 0, 0)), -- Bright red
-    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(280, 0, 0)), -- Darker red
-    ColorSequenceKeypoint.new(1, Color3.fromRGB(280, 0, 0)) -- Back to bright red
-})
-
--- Optional: Animate transparency for pulsating effect
-trail.Transparency = NumberSequence.new({
-    NumberSequenceKeypoint.new(0, 0), -- Fully opaque
-    NumberSequenceKeypoint.new(0.5, 0.3), -- Slightly transparent
-    NumberSequenceKeypoint.new(1, 0) -- Fully opaque
-})
-
-
-local function pulseWidth()
-    while true do
-        trail.WidthScale = 1
-        wait(0.5)
-        trail.WidthScale = 1.5
-        wait(0.5)
-    end
-end
-
-spawn(pulseWidth) 
-end)
